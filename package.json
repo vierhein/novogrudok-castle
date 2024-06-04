@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "events": "^3.3.0",
+    "nipplejs": "^0.10.2",
     "three": "^0.145.0",
     "vite-plugin-glsl": "^0.5.1"
   }

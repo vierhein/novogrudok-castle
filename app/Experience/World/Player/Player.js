@@ -2,8 +2,8 @@ import * as THREE from "three";
 import Experience from "../../Experience.js";
 
 import { EventEmitter } from "events";
-
 import { Capsule } from "three/examples/jsm/math/Capsule";
+import nipplejs from 'nipplejs';
 
 export default class Player extends EventEmitter {
     constructor() {
@@ -15,8 +15,8 @@ export default class Player extends EventEmitter {
 
         this.initPlayer();
         this.initControls();
-
         this.addEventListeners();
+        this.initMobileControls();
     }
 
     initPlayer() {
@@ -54,6 +54,63 @@ export default class Player extends EventEmitter {
 
     initControls() {
         this.actions = {};
+    }
+
+    initMobileControls() {
+        // Create joystick manager instances
+        this.joystickManagerLeft = nipplejs.create({
+            zone: document.getElementById('left_joystick_zone'),
+            mode: 'static',
+            position: { left: '20%', bottom: '20%' },
+            color: 'red',
+            size: 100
+        });
+
+        this.joystickManagerRight = nipplejs.create({
+            zone: document.getElementById('right_joystick_zone'),
+            mode: 'static',
+            position: { right: '20%', bottom: '20%' },
+            color: 'blue',
+            size: 100
+        });
+
+        this.joystickManagerLeft.on('move', this.onMoveJoystick.bind(this));
+        this.joystickManagerLeft.on('end', this.onEndJoystick.bind(this));
+        this.joystickManagerRight.on('move', this.onLookJoystick.bind(this));
+        this.joystickManagerRight.on('end', this.onEndJoystick.bind(this));
+    }
+
+    onMoveJoystick(evt, data) {
+        const forward = data.vector.y;
+        const right = data.vector.x;
+
+        this.actions.forward = forward > 0.1;
+        this.actions.backward = forward < -0.1;
+        this.actions.left = right < -0.1;
+        this.actions.right = right > 0.1;
+    }
+
+    onLookJoystick(evt, data) {
+        const deltaX = data.vector.x * 0.1;
+        const deltaY = data.vector.y * 0.1;
+
+        this.player.body.rotation.order = this.player.rotation.order;
+
+        this.player.body.rotation.x -= deltaY;
+        this.player.body.rotation.y -= deltaX;
+
+        this.player.body.rotation.x = THREE.MathUtils.clamp(
+            this.player.body.rotation.x,
+            -Math.PI / 2,
+            Math.PI / 2
+        );
+    }
+
+    onEndJoystick() {
+        this.actions.forward = false;
+        this.actions.backward = false;
+        this.actions.left = false;
+        this.actions.right = false;
     }
 
     onDesktopPointerMove = (e) => {
