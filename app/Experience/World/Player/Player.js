@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import Experience from "../../Experience.js";
-
 import { EventEmitter } from "events";
 import { Capsule } from "three/examples/jsm/math/Capsule";
 import nipplejs from 'nipplejs';
@@ -57,7 +56,6 @@ export default class Player extends EventEmitter {
     }
 
     initMobileControls() {
-        // Create joystick manager instances
         this.joystickManagerLeft = nipplejs.create({
             zone: document.getElementById('left_joystick_zone'),
             mode: 'static',
@@ -66,18 +64,28 @@ export default class Player extends EventEmitter {
             size: 100
         });
 
-        this.joystickManagerRight = nipplejs.create({
-            zone: document.getElementById('right_joystick_zone'),
-            mode: 'static',
-            position: { right: '20%', bottom: '20%' },
-            color: 'blue',
-            size: 100
-        });
+        // this.joystickManagerRight = nipplejs.create({
+        //     zone: document.getElementById('right_joystick_zone'),
+        //     mode: 'static',
+        //     position: { right: '20%', bottom: '20%' },
+        //     color: 'blue',
+        //     size: 100
+        // });
 
         this.joystickManagerLeft.on('move', this.onMoveJoystick.bind(this));
         this.joystickManagerLeft.on('end', this.onEndJoystick.bind(this));
-        this.joystickManagerRight.on('move', this.onLookJoystick.bind(this));
-        this.joystickManagerRight.on('end', this.onEndJoystick.bind(this));
+
+        this.touch = {
+            isMoving: false,
+            initialX: 0,
+            initialY: 0,
+            deltaX: 0,
+            deltaY: 0,
+        };
+
+        document.body.addEventListener('touchstart', this.onTouchStart.bind(this));
+        document.body.addEventListener('touchmove', this.onTouchMove.bind(this));
+        document.body.addEventListener('touchend', this.onTouchEnd.bind(this));
     }
 
     onMoveJoystick(evt, data) {
@@ -90,27 +98,60 @@ export default class Player extends EventEmitter {
         this.actions.right = right > 0.1;
     }
 
-    onLookJoystick(evt, data) {
-        const deltaX = data.vector.x * 0.1;
-        const deltaY = data.vector.y * 0.1;
+    // onLookJoystick(evt, data) {
+    //     const deltaX = data.vector.x * 0.1;
+    //     const deltaY = data.vector.y * 0.1;
 
-        this.player.body.rotation.order = this.player.rotation.order;
+    //     this.player.body.rotation.order = this.player.rotation.order;
 
-        this.player.body.rotation.x -= deltaY;
-        this.player.body.rotation.y -= deltaX;
+    //     this.player.body.rotation.x += deltaY;
+    //     this.player.body.rotation.y += deltaX;
 
-        this.player.body.rotation.x = THREE.MathUtils.clamp(
-            this.player.body.rotation.x,
-            -Math.PI / 2,
-            Math.PI / 2
-        );
-    }
+    //     this.player.body.rotation.x = THREE.MathUtils.clamp(
+    //         this.player.body.rotation.x,
+    //         -Math.PI / 2,
+    //         Math.PI / 2
+    //     );
+    // }
 
     onEndJoystick() {
         this.actions.forward = false;
         this.actions.backward = false;
         this.actions.left = false;
         this.actions.right = false;
+    }
+
+    onTouchStart(e) {
+        if (e.touches.length === 1) {
+            this.touch.isMoving = true;
+            this.touch.initialX = e.touches[0].clientX;
+            this.touch.initialY = e.touches[0].clientY;
+        }
+    }
+
+    onTouchMove(e) {
+        if (this.touch.isMoving && e.touches.length === 1) {
+            this.touch.deltaX = e.touches[0].clientX - this.touch.initialX;
+            this.touch.deltaY = e.touches[0].clientY - this.touch.initialY;
+
+            this.player.body.rotation.order = this.player.rotation.order;
+
+            this.player.body.rotation.x -= this.touch.deltaY / 500;
+            this.player.body.rotation.y -= this.touch.deltaX / 500;
+
+            this.player.body.rotation.x = THREE.MathUtils.clamp(
+                this.player.body.rotation.x,
+                -Math.PI / 2,
+                Math.PI / 2
+            );
+
+            this.touch.initialX = e.touches[0].clientX;
+            this.touch.initialY = e.touches[0].clientY;
+        }
+    }
+
+    onTouchEnd(e) {
+        this.touch.isMoving = false;
     }
 
     onDesktopPointerMove = (e) => {
